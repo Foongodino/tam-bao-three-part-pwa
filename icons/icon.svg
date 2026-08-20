@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Tam Bảo Three Treasures">
+  <rect width="512" height="512" rx="96" fill="#285d50"/>
+  <circle cx="256" cy="256" r="204" fill="#e2be5b"/>
+  <circle cx="256" cy="256" r="176" fill="#fffdf8"/>
+  <text x="256" y="337" text-anchor="middle" font-family="Microsoft JhengHei, Noto Sans TC, sans-serif" font-size="248" font-weight="800" fill="#285d50">三</text>
+</svg>
