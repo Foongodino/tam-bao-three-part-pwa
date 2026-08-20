@@ -1,0 +1,219 @@
+:root {
+  --studio-ink: #102c25;
+  --studio-green: #174c40;
+  --studio-green-2: #276b5a;
+  --studio-gold: #bd8a38;
+  --studio-soft: #edf5f1;
+}
+
+body {
+  background:
+    radial-gradient(circle at 8% 0%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 34rem),
+    linear-gradient(145deg, var(--background), color-mix(in srgb, var(--background) 92%, var(--accent)));
+}
+
+header {
+  border: 1px solid color-mix(in srgb, var(--line) 84%, transparent);
+  border-radius: 20px;
+  padding: 14px 16px;
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  box-shadow: 0 18px 50px #102c2518;
+  backdrop-filter: blur(18px);
+}
+
+.card {
+  border: 1px solid color-mix(in srgb, var(--line) 88%, transparent);
+  box-shadow: 0 28px 80px #102c2518;
+}
+
+.workspaceTabs {
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--soft) 80%, transparent);
+}
+
+.workspaceTabs button {
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.workspaceTabs button.active {
+  color: #fff;
+  background: linear-gradient(135deg, var(--studio-green), var(--studio-green-2));
+  box-shadow: 0 8px 20px #174c4033;
+}
+
+.autosaveBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+  padding: 7px 11px;
+  border: 1px solid #9ec8b9;
+  border-radius: 999px;
+  color: #205c4d;
+  background: #edf8f3;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.autosaveBadge::before {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #2f9b74;
+  content: "";
+  box-shadow: 0 0 0 4px #2f9b7418;
+}
+
+.autosaveBadge.saving::before { background: var(--studio-gold); }
+.autosaveBadge.error { color: #8d342a; border-color: #e4aaa2; background: #fff0ed; }
+.autosaveBadge.error::before { background: #bd4a3d; }
+
+.obsView {
+  --obs-caption-size: 34px;
+  display: grid;
+  gap: 16px;
+  padding-top: 14px;
+}
+
+.obsView[hidden] { display: none !important; }
+
+.obsStudioHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 9%, var(--surface)), var(--surface));
+}
+
+.obsStudioHeader h2 { margin: 0 0 4px; color: var(--studio-green); font-size: clamp(20px, 3vw, 28px); }
+.obsStudioHeader p { margin: 0; color: var(--muted); }
+.obsLiveBadge { display: inline-flex; align-items: center; gap: 7px; padding: 7px 11px; border-radius: 999px; color: #fff; background: #a3332c; font-size: 12px; font-weight: 900; letter-spacing: .08em; }
+.obsLiveBadge::before { width: 8px; height: 8px; border-radius: 50%; background: #fff; content: ""; animation: obsPulse 1.5s infinite; }
+@keyframes obsPulse { 50% { opacity: .35; } }
+
+.obsControlGrid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.obsControlGrid label,
+.obsControlGroup {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.obsControlGrid label > span,
+.obsControlGroup > span { color: var(--muted); font-size: 12px; font-weight: 850; letter-spacing: .04em; text-transform: uppercase; }
+.obsControlGrid select,
+.obsControlGrid input[type="range"] { width: 100%; }
+.obsSpan2 { grid-column: span 2; }
+.obsSpan3 { grid-column: span 3; }
+.obsSpan4 { grid-column: span 4; }
+.obsSpan6 { grid-column: span 6; }
+.obsSpan12 { grid-column: 1 / -1; }
+
+.obsLanguageChecks { display: flex; flex-wrap: wrap; gap: 7px; }
+.obsLanguageChecks label { display: inline-flex; grid-auto-flow: column; align-items: center; gap: 6px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--soft); font-weight: 750; cursor: pointer; }
+.obsLanguageChecks input { width: auto; margin: 0; }
+
+.obsActions { display: flex; flex-wrap: wrap; gap: 8px; }
+.obsActions button { flex: 1 1 120px; }
+.obsActions .primary { color: #fff; border-color: var(--studio-green); background: linear-gradient(135deg, var(--studio-green), var(--studio-green-2)); }
+.obsActions .danger { color: #fff; border-color: #92372f; background: #92372f; }
+
+.obsStageShell {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  min-height: 420px;
+  border: 1px solid #345047;
+  border-radius: 20px;
+  background: #07110e;
+  box-shadow: 0 30px 80px #07110e44;
+}
+
+.obsStage {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: clamp(12px, 2vw, 28px);
+  padding: clamp(22px, 4vw, 58px);
+  color: #fff;
+  background:
+    linear-gradient(180deg, #07110ee8 0%, #102a23d9 48%, #07110ef5 100%),
+    var(--obs-image, none) center / cover no-repeat;
+}
+
+.obsStage[data-background="transparent"] { background: transparent; }
+.obsStage[data-background="green"] { background: #00b140; }
+.obsStage[data-background="black"] { background: #000; }
+
+.obsStageTop { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.obsBrand { display: flex; align-items: center; gap: 12px; font-weight: 900; letter-spacing: .02em; }
+.obsBrandMark { display: grid; width: 46px; height: 46px; place-items: center; border: 1px solid #ffffff55; border-radius: 14px; background: #ffffff18; font: 800 25px Georgia,serif; backdrop-filter: blur(10px); }
+.obsSource { max-width: 55%; color: #dfece7; font-size: clamp(12px, 1.4vw, 18px); font-weight: 750; text-align: right; }
+
+.obsCaptionGrid {
+  align-self: center;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(10px, 1.5vw, 18px);
+  width: min(1480px, 100%);
+  margin: auto;
+}
+.obsCaptionGrid.twoColumn { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.obsCaptionCard { min-width: 0; padding: clamp(14px, 1.8vw, 24px); border: 1px solid #ffffff30; border-radius: 16px; background: #06100dd6; box-shadow: 0 16px 42px #0007; backdrop-filter: blur(15px); }
+.obsCaptionLabel { margin-bottom: 8px; color: #e9c279; font-size: clamp(11px, 1vw, 15px); font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+.obsCaptionText { overflow: hidden; max-height: 9.2em; font-size: clamp(20px, calc(var(--obs-caption-size) * .075vw + 12px), var(--obs-caption-size)); font-weight: 680; line-height: 1.4; text-wrap: balance; white-space: pre-wrap; }
+.obsCaptionCard[data-lang="zh"] .obsCaptionText,
+.obsCaptionCard[data-lang="yue"] .obsCaptionText { font-family: "Noto Sans TC","Microsoft JhengHei",sans-serif; }
+
+.obsStageBottom { display: flex; align-items: center; justify-content: space-between; gap: 18px; color: #d8e5e0; font-size: clamp(11px, 1vw, 15px); font-weight: 700; }
+.obsProgress { height: 4px; flex: 1; overflow: hidden; border-radius: 999px; background: #ffffff2b; }
+.obsProgress > span { display: block; width: var(--obs-progress, 0%); height: 100%; background: linear-gradient(90deg, var(--studio-gold), #f1d89b); transition: width .25s ease; }
+
+.obsAudioStatus { min-height: 22px; color: var(--muted); font-weight: 700; }
+.obsHint { margin: 0; padding: 12px 14px; border-left: 4px solid var(--studio-gold); border-radius: 10px; color: var(--muted); background: color-mix(in srgb, var(--studio-gold) 9%, var(--surface)); }
+
+.obsView.cleanOutput .obsStudioHeader,
+.obsView.cleanOutput .obsControlGrid,
+.obsView.cleanOutput .obsAudioStatus,
+.obsView.cleanOutput .obsHint { display: none; }
+.obsView.cleanOutput { position: fixed; inset: 0; z-index: 9999; padding: 0; background: #000; }
+.obsView.cleanOutput .obsStageShell { width: 100vw; height: 100vh; min-height: 0; border: 0; border-radius: 0; }
+.obsView.cleanOutput .obsStage { position: fixed; }
+
+body.theme-dark .autosaveBadge { color: #b8e6d5; border-color: #315e50; background: #143229; }
+body.theme-dark .obsStudioHeader { background: linear-gradient(135deg, #183c32, #101b18); }
+
+@media (max-width: 900px) {
+  .obsSpan2,.obsSpan3,.obsSpan4,.obsSpan6 { grid-column: span 6; }
+  .obsStageShell { min-height: 360px; }
+  .obsCaptionGrid.twoColumn { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+  .autosaveBadge { width: 100%; justify-content: center; margin: 8px 0 0; }
+  .obsControlGrid > * { grid-column: 1 / -1 !important; }
+  .obsStudioHeader { flex-direction: column; }
+  .obsStageShell { min-height: 300px; }
+  .obsStage { padding: 18px; }
+  .obsCaptionText { max-height: 7em; }
+}

@@ -2,7 +2,7 @@
   "id": "./",
   "name": "Tam Bảo · 三寶 · Three-Part Multilingual",
   "short_name": "Tam Bảo · 三寶",
-  "description": "Four-language Three Treasures presentation and reading PWA with project MP3 and browser voices.",
+  "description": "Four-language Three Treasures presentation, reading, editing, and OBS caption studio with project MP3 and browser voices.",
   "lang": "zh-Hant",
   "start_url": "./",
   "scope": "./",

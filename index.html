@@ -47,7 +47,10 @@
         const material=await crypto.subtle.importKey("raw",new TextEncoder().encode(password),"PBKDF2",false,["deriveKey"]);
         const key=await crypto.subtle.deriveKey({name:"PBKDF2",salt:fromBase64(payload.salt),iterations:payload.iterations,hash:"SHA-256"},material,{name:"AES-GCM",length:256},false,["decrypt"]);
         const decrypted=await crypto.subtle.decrypt({name:"AES-GCM",iv:fromBase64(payload.iv)},key,fromBase64(payload.data));
-        const html=new TextDecoder().decode(decrypted);
+        let html=new TextDecoder().decode(decrypted);
+        html=html.replace(/const deck\s*=\s*\[/,"const deck = window.__TAM_BAO_DECK__ = [");
+        html=html.replace("</head>",'<link rel="stylesheet" href="./app-upgrade.css"></head>');
+        html=html.replace("</body>",'<script src="./app-upgrade.js"></scr'+'ipt></body>');
         document.open();
         document.write(html);
         document.close();
