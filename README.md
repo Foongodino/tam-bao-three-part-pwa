@@ -8,7 +8,7 @@ Installable multilingual presentation and reading edition for:
 
 Languages: Traditional Chinese, US English, Vietnamese, and Hong Kong Cantonese.
 
-The published `index.html` contains an encrypted application payload. Project MP3 narration is available for Traditional Chinese and Vietnamese; English and Cantonese use available browser voices. Images and MP3 files are cached as they are used.
+The published `index.html` contains an encrypted application payload. Project MP3 narration is available for all four languages. English and Hong Kong Cantonese were updated from the latest `001-EN` and `001-YUE` recordings; the existing Traditional Chinese and Vietnamese recordings remain unchanged. Images and MP3 files are cached as they are used.
 
 ## Editing and automatic saving
 
@@ -22,8 +22,8 @@ Choose **OBS Studio** in the PWA for a professional 16:9 presentation workspace 
 - Stacked or two-column caption layouts.
 - Cinematic image, black, chroma-green, or transparent backgrounds.
 - Passage navigation, caption sizing, and full-screen or clean-output modes.
-- Traditional Chinese and Vietnamese project MP3 playback.
-- English and Hong Kong Cantonese browser voices.
+- Project MP3 playback for Traditional Chinese, US English, Vietnamese, and Hong Kong Cantonese.
+- Browser voice fallback for every language when Project MP3 is unavailable or Online voice is selected.
 - Audio-language, source, speed, play, pause/resume, and stop controls.
 
 For OBS, add a **Window Capture** source for the browser, then use **Clean output** or **Full-screen stage** in the PWA.
