@@ -158,7 +158,7 @@
           <label><input type="checkbox" data-obs-lang="yue">香港廣東話</label>
         </div></div>
         <label class="obsSpan3"><span>Voice source</span><select id="obsAudioSource"><option value="auto">Auto · MP3 first</option><option value="mp3">Project MP3</option><option value="online">Online voice</option></select></label>
-        <label class="obsSpan3"><span>Playback speed</span><input id="obsRate" type="range" min="0.60" max="1.30" step="0.05" value="0.90"></label>
+        <label class="obsSpan3"><span>Playback speed</span><input id="obsRate" type="range" min="0.60" max="1.30" step="0.05" value="1.00"></label>
         <div class="obsActions obsSpan12">
           <button type="button" id="obsPrevious">← Previous</button>
           <button type="button" class="primary" id="obsPlay">▶ Play audio</button>
