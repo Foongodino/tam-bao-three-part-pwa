@@ -122,6 +122,8 @@ header {
 .obsControlGroup > span { color: var(--muted); font-size: 12px; font-weight: 850; letter-spacing: .04em; text-transform: uppercase; }
 .obsControlGrid select,
 .obsControlGrid input[type="range"] { width: 100%; }
+.obsControlGrid .obsToggle > span:last-child { display: flex; align-items: center; gap: 7px; min-height: 44px; color: var(--ink); font-size: 14px; font-weight: 750; letter-spacing: 0; text-transform: none; }
+.obsControlGrid .obsToggle input { width: auto; margin: 0; }
 .obsSpan2 { grid-column: span 2; }
 .obsSpan3 { grid-column: span 3; }
 .obsSpan4 { grid-column: span 4; }
@@ -164,6 +166,9 @@ header {
 .obsStage[data-background="transparent"] { background: transparent; }
 .obsStage[data-background="green"] { background: #00b140; }
 .obsStage[data-background="black"] { background: #000; }
+.obsStage.textFocus { grid-template-rows: minmax(0, 1fr); gap: 0; padding: clamp(10px, 2vw, 28px); }
+.obsStage.textFocus .obsStageTop,
+.obsStage.textFocus .obsStageBottom { display: none; }
 
 .obsStageTop { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
 .obsBrand { display: flex; align-items: center; gap: 12px; font-weight: 900; letter-spacing: .02em; }
@@ -184,7 +189,7 @@ header {
 .obsCaptionGrid.twoColumn { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .obsCaptionCard { display: grid; grid-template-rows: auto minmax(0, 1fr); min-width: 0; min-height: 0; overflow: hidden; padding: clamp(14px, 1.8vw, 24px); border: 1px solid #ffffff30; border-radius: 16px; background: #06100dd6; box-shadow: 0 16px 42px #0007; backdrop-filter: blur(15px); }
 .obsCaptionLabel { margin-bottom: 8px; color: #e9c279; font-size: clamp(11px, 1vw, 15px); font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
-.obsCaptionText { min-height: 0; overflow: hidden; font-size: var(--obs-caption-size); font-weight: 680; line-height: 1.32; text-wrap: balance; white-space: pre-wrap; }
+.obsCaptionText { min-height: 0; overflow: hidden; overflow-wrap: anywhere; font-size: var(--obs-caption-size); font-weight: 680; line-height: 1.28; text-wrap: wrap; white-space: pre-wrap; }
 .obsCaptionCard[data-lang="zh"] .obsCaptionText,
 .obsCaptionCard[data-lang="yue"] .obsCaptionText { font-family: "Noto Sans TC","Microsoft JhengHei",sans-serif; }
 

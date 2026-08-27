@@ -197,10 +197,12 @@
         <label class="obsSpan4"><span>Passage</span><select id="obsPassage" aria-label="OBS passage"></select></label>
         <label class="obsSpan2"><span>Caption layout</span><select id="obsLayout"><option value="stacked">Stacked</option><option value="columns">Two columns</option></select></label>
         <label class="obsSpan2"><span>Background</span><select id="obsBackground"><option value="image">Cinematic image</option><option value="black">Black</option><option value="green">Chroma green</option><option value="transparent">Transparent</option></select></label>
-        <label class="obsSpan2"><span>Maximum caption size · auto-fit</span><input id="obsFontSize" type="range" min="22" max="54" step="1" value="34"></label>
+        <label class="obsSpan2"><span>Caption font size · <strong id="obsFontSizeValue">34px</strong></span><input id="obsFontSize" type="range" min="10" max="54" step="1" value="34"></label>
         <label class="obsSpan2"><span>Audio language</span><select id="obsAudioLanguage"><option value="zh">繁體中文</option><option value="en">US English</option><option value="vi">Tiếng Việt</option><option value="yue">香港廣東話</option></select></label>
         <label class="obsSpan2"><span>Text box width · <strong id="obsBoxWidthValue">100%</strong></span><input id="obsBoxWidth" type="range" min="60" max="100" step="1" value="100"></label>
         <label class="obsSpan2"><span>Text box height · <strong id="obsBoxHeightValue">100%</strong></span><input id="obsBoxHeight" type="range" min="50" max="100" step="1" value="100"></label>
+        <label class="obsToggle obsSpan2"><span>Complete text</span><span><input id="obsAutoFit" type="checkbox" checked> Auto-fit complete text</span></label>
+        <label class="obsToggle obsSpan2"><span>Maximum text area</span><span><input id="obsTextFocus" type="checkbox" checked> Expand text area</span></label>
         <div class="obsControlGroup obsSpan6"><span>Caption languages · select one or more</span><div class="obsLanguageChecks">
           <label><input type="checkbox" data-obs-lang="zh" checked>繁體中文</label>
           <label><input type="checkbox" data-obs-lang="en" checked>US English</label>
@@ -274,7 +276,7 @@
       saveObsSettings();
       renderObsStage();
     }));
-    ["obsLayout", "obsBackground", "obsFontSize", "obsBoxWidth", "obsBoxHeight", "obsAudioLanguage", "obsAudioSource", "obsRate"].forEach((id) => {
+    ["obsLayout", "obsBackground", "obsFontSize", "obsBoxWidth", "obsBoxHeight", "obsAutoFit", "obsTextFocus", "obsAudioLanguage", "obsAudioSource", "obsRate"].forEach((id) => {
       $(id).addEventListener("input", () => { saveObsSettings(); renderObsStage(); });
       $(id).addEventListener("change", () => { saveObsSettings(); renderObsStage(); });
     });
@@ -381,10 +383,11 @@
   function fitObsCaptions(stage) {
     if (!stage || !stage.isConnected || stage.clientHeight === 0) return;
     const requestedSize = Number.parseFloat(stage.style.getPropertyValue("--obs-caption-size")) || 34;
+    const autoFit = $("obsAutoFit")?.checked !== false;
     stage.querySelectorAll(".obsCaptionText").forEach((text) => {
       let size = requestedSize;
       text.style.fontSize = `${size}px`;
-      while (size > 12 && (text.scrollHeight > text.clientHeight + 1 || text.scrollWidth > text.clientWidth + 1)) {
+      while (autoFit && size > 7 && (text.scrollHeight > text.clientHeight + 1 || text.scrollWidth > text.clientWidth + 1)) {
         size -= 1;
         text.style.fontSize = `${size}px`;
       }
@@ -437,12 +440,13 @@
       label.textContent = languages[language].short;
       const text = document.createElement("div");
       text.className = "obsCaptionText";
-      text.textContent = slide.body[language] || "";
+      text.textContent = (slide.body[language] || "").trim().replace(/\n[\t ]*\n(?:[\t ]*\n)+/g, "\n\n");
       card.append(label, text);
       return card;
     }));
     const stage = $("obsStage");
     stage.dataset.background = $("obsBackground").value;
+    stage.classList.toggle("textFocus", $("obsTextFocus").checked);
     stage.style.setProperty("--obs-caption-size", `${$("obsFontSize").value}px`);
     stage.style.setProperty("--obs-caption-width", `${$("obsBoxWidth").value}%`);
     stage.style.setProperty("--obs-caption-height", `${$("obsBoxHeight").value}%`);
@@ -453,6 +457,7 @@
     $("obsPage").textContent = `${String(index + 1).padStart(2, "0")} / ${deck.length}`;
     $("obsPrevious").disabled = index === 0;
     $("obsNext").disabled = index === deck.length - 1;
+    $("obsFontSizeValue").textContent = `${$("obsFontSize").value}px`;
     $("obsBoxWidthValue").textContent = `${$("obsBoxWidth").value}%`;
     $("obsBoxHeightValue").textContent = `${$("obsBoxHeight").value}%`;
     requestAnimationFrame(() => {
@@ -468,6 +473,8 @@
     if (settings.fontSize) $("obsFontSize").value = settings.fontSize;
     if (settings.boxWidth) $("obsBoxWidth").value = settings.boxWidth;
     if (settings.boxHeight) $("obsBoxHeight").value = settings.boxHeight;
+    if (typeof settings.autoFit === "boolean") $("obsAutoFit").checked = settings.autoFit;
+    if (typeof settings.textFocus === "boolean") $("obsTextFocus").checked = settings.textFocus;
     if (settings.audioLanguage) $("obsAudioLanguage").value = settings.audioLanguage;
     if (settings.audioSource) $("obsAudioSource").value = settings.audioSource;
     if (settings.rate) $("obsRate").value = settings.rate;
@@ -483,6 +490,8 @@
       fontSize: $("obsFontSize").value,
       boxWidth: $("obsBoxWidth").value,
       boxHeight: $("obsBoxHeight").value,
+      autoFit: $("obsAutoFit").checked,
+      textFocus: $("obsTextFocus").checked,
       audioLanguage: $("obsAudioLanguage").value,
       audioSource: $("obsAudioSource").value,
       rate: $("obsRate").value,

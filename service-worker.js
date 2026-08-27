@@ -1,4 +1,4 @@
-const CACHE_NAME="tam-bao-three-part-pwa-2026-08-26-v9";
+const CACHE_NAME="tam-bao-three-part-pwa-2026-08-26-v10";
 const APP_SHELL=["./","./index.html","./app-upgrade.css","./app-upgrade.js","./manifest.webmanifest","./icons/icon.svg","./icons/icon-192.png","./icons/icon-512.png"];
 
 self.addEventListener("install",(event) => {
