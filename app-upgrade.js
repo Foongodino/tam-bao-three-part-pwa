@@ -13,8 +13,10 @@
   };
   const editStorageKey = "tam-bao-2026-passage-edits-v1";
   const obsStorageKey = "tam-bao-2026-obs-settings-v1";
+  const editorContextRepairKey = "tam-bao-2026-editor-context-repair-v1";
   let saveTimer = 0;
   let editingStore = readJson(editStorageKey, {});
+  let editorContext = { index: 0, language: "zh" };
   let obsSecondMonitorWindow = null;
 
   function readJson(key, fallback) {
@@ -53,6 +55,40 @@
     });
   }
 
+  function repairCorruptedChineseEdits() {
+    try {
+      if (localStorage.getItem(editorContextRepairKey) === "done") return;
+      const originalChineseById = new Map(deck.map((slide) => [String(slide.id), slide.body.zh || ""]));
+      const originalChineseValues = new Map();
+      deck.forEach((slide) => {
+        const value = slide.body.zh || "";
+        const ids = originalChineseValues.get(value) || new Set();
+        ids.add(String(slide.id));
+        originalChineseValues.set(value, ids);
+      });
+      const savedChineseCounts = new Map();
+      Object.values(editingStore).forEach((saved) => {
+        if (typeof saved?.zh !== "string") return;
+        savedChineseCounts.set(saved.zh, (savedChineseCounts.get(saved.zh) || 0) + 1);
+      });
+      let repaired = false;
+      Object.entries(editingStore).forEach(([id, saved]) => {
+        if (typeof saved?.zh !== "string") return;
+        const ownOriginal = originalChineseById.get(id);
+        const sourceIds = originalChineseValues.get(saved.zh);
+        const copiedFromAnotherPage = sourceIds && !sourceIds.has(id);
+        const duplicatedAcrossSavedPages = (savedChineseCounts.get(saved.zh) || 0) > 1;
+        if (saved.zh !== ownOriginal && (copiedFromAnotherPage || duplicatedAcrossSavedPages)) {
+          delete saved.zh;
+          if (!Object.keys(saved).length) delete editingStore[id];
+          repaired = true;
+        }
+      });
+      if (repaired) writeJson(editStorageKey, editingStore);
+      localStorage.setItem(editorContextRepairKey, "done");
+    } catch { /* Keep the app usable if local storage is unavailable. */ }
+  }
+
   function updateSaveBadge(state, message) {
     const badge = $("autosaveBadge");
     if (!badge) return;
@@ -64,8 +100,8 @@
   function saveCurrentEditor({ immediate = false } = {}) {
     const editor = $("text");
     if (!editor) return;
-    const index = activeIndex();
-    const language = activeLanguage();
+    const index = Math.max(0, Math.min(deck.length - 1, editorContext.index));
+    const language = languages[editorContext.language] ? editorContext.language : "zh";
     const slide = deck[index];
     const value = editor.value;
     slide.body[language] = value;
@@ -87,7 +123,13 @@
     selector.dispatchEvent(new Event("change", { bubbles: true }));
   }
 
+  function syncEditorContext() {
+    editorContext = { index: activeIndex(), language: activeLanguage() };
+  }
+
+  repairCorruptedChineseEdits();
   applyStoredEdits();
+  syncEditorContext();
 
   const header = document.querySelector("header");
   if (header) {
@@ -106,11 +148,16 @@
   editor?.addEventListener("blur", () => saveCurrentEditor({ immediate: true }));
 
   const navigationTargets = [
-    $("passage"), $("previous"), $("next"), $("readingPrevious"), $("readingNext"), $("editLock"),
+    $("passage"), $("previous"), $("next"), $("readingPrevious"), $("readingNext"), $("readingPageSelect"),
+    $("readingBottomPrevious"), $("readingBottomNext"), $("readingPreviousPlayer"), $("readingPlayNext"),
+    $("livePlayerPrevious"), $("liveReadNext"), $("editLock"),
     ...document.querySelectorAll("[data-lang],[data-section]"),
   ].filter(Boolean);
   navigationTargets.forEach((element) => {
-    ["click", "change"].forEach((eventName) => element.addEventListener(eventName, () => saveCurrentEditor({ immediate: true }), true));
+    ["click", "change"].forEach((eventName) => {
+      element.addEventListener(eventName, () => saveCurrentEditor({ immediate: true }), true);
+      element.addEventListener(eventName, () => window.setTimeout(syncEditorContext, 0));
+    });
   });
   window.addEventListener("pagehide", () => saveCurrentEditor({ immediate: true }));
 
