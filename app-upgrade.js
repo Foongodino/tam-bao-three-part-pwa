@@ -199,6 +199,8 @@
         <label class="obsSpan2"><span>Background</span><select id="obsBackground"><option value="image">Cinematic image</option><option value="black">Black</option><option value="green">Chroma green</option><option value="transparent">Transparent</option></select></label>
         <label class="obsSpan2"><span>Maximum caption size · auto-fit</span><input id="obsFontSize" type="range" min="22" max="54" step="1" value="34"></label>
         <label class="obsSpan2"><span>Audio language</span><select id="obsAudioLanguage"><option value="zh">繁體中文</option><option value="en">US English</option><option value="vi">Tiếng Việt</option><option value="yue">香港廣東話</option></select></label>
+        <label class="obsSpan2"><span>Text box width · <strong id="obsBoxWidthValue">100%</strong></span><input id="obsBoxWidth" type="range" min="60" max="100" step="1" value="100"></label>
+        <label class="obsSpan2"><span>Text box height · <strong id="obsBoxHeightValue">100%</strong></span><input id="obsBoxHeight" type="range" min="50" max="100" step="1" value="100"></label>
         <div class="obsControlGroup obsSpan6"><span>Caption languages · select one or more</span><div class="obsLanguageChecks">
           <label><input type="checkbox" data-obs-lang="zh" checked>繁體中文</label>
           <label><input type="checkbox" data-obs-lang="en" checked>US English</label>
@@ -216,6 +218,7 @@
           <button type="button" id="obsFullscreen">Full-screen stage</button>
           <button type="button" id="obsCleanOutput">Clean output</button>
           <button type="button" id="obsSecondMonitor">2nd monitor · Selected content</button>
+          <button type="button" id="obsResetBoxSize">Reset text boxes</button>
         </div>
       </div>
       <div class="obsAudioStatus" id="obsAudioStatus">Ready for presentation.</div>
@@ -271,9 +274,15 @@
       saveObsSettings();
       renderObsStage();
     }));
-    ["obsLayout", "obsBackground", "obsFontSize", "obsAudioLanguage", "obsAudioSource", "obsRate"].forEach((id) => {
+    ["obsLayout", "obsBackground", "obsFontSize", "obsBoxWidth", "obsBoxHeight", "obsAudioLanguage", "obsAudioSource", "obsRate"].forEach((id) => {
       $(id).addEventListener("input", () => { saveObsSettings(); renderObsStage(); });
       $(id).addEventListener("change", () => { saveObsSettings(); renderObsStage(); });
+    });
+    $("obsResetBoxSize").addEventListener("click", () => {
+      $("obsBoxWidth").value = "100";
+      $("obsBoxHeight").value = "100";
+      saveObsSettings();
+      renderObsStage();
     });
     $("obsPlay").addEventListener("click", playObsAudio);
     $("obsStop").addEventListener("click", () => $("stop")?.click());
@@ -435,6 +444,8 @@
     const stage = $("obsStage");
     stage.dataset.background = $("obsBackground").value;
     stage.style.setProperty("--obs-caption-size", `${$("obsFontSize").value}px`);
+    stage.style.setProperty("--obs-caption-width", `${$("obsBoxWidth").value}%`);
+    stage.style.setProperty("--obs-caption-height", `${$("obsBoxHeight").value}%`);
     stage.style.setProperty("--obs-image", slide.image ? `url("${slide.image.replaceAll('"', '%22')}")` : "none");
     stage.style.setProperty("--obs-progress", `${((index + 1) / deck.length) * 100}%`);
     $("obsSource").textContent = slide.source;
@@ -442,6 +453,8 @@
     $("obsPage").textContent = `${String(index + 1).padStart(2, "0")} / ${deck.length}`;
     $("obsPrevious").disabled = index === 0;
     $("obsNext").disabled = index === deck.length - 1;
+    $("obsBoxWidthValue").textContent = `${$("obsBoxWidth").value}%`;
+    $("obsBoxHeightValue").textContent = `${$("obsBoxHeight").value}%`;
     requestAnimationFrame(() => {
       fitObsCaptions(stage);
       syncObsSecondMonitor();
@@ -453,6 +466,8 @@
     if (settings.layout) $("obsLayout").value = settings.layout;
     if (settings.background) $("obsBackground").value = settings.background;
     if (settings.fontSize) $("obsFontSize").value = settings.fontSize;
+    if (settings.boxWidth) $("obsBoxWidth").value = settings.boxWidth;
+    if (settings.boxHeight) $("obsBoxHeight").value = settings.boxHeight;
     if (settings.audioLanguage) $("obsAudioLanguage").value = settings.audioLanguage;
     if (settings.audioSource) $("obsAudioSource").value = settings.audioSource;
     if (settings.rate) $("obsRate").value = settings.rate;
@@ -466,6 +481,8 @@
       layout: $("obsLayout").value,
       background: $("obsBackground").value,
       fontSize: $("obsFontSize").value,
+      boxWidth: $("obsBoxWidth").value,
+      boxHeight: $("obsBoxHeight").value,
       audioLanguage: $("obsAudioLanguage").value,
       audioSource: $("obsAudioSource").value,
       rate: $("obsRate").value,
