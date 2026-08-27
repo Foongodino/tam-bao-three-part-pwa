@@ -150,7 +150,7 @@
         <label class="obsSpan4"><span>Passage</span><select id="obsPassage" aria-label="OBS passage"></select></label>
         <label class="obsSpan2"><span>Caption layout</span><select id="obsLayout"><option value="stacked">Stacked</option><option value="columns">Two columns</option></select></label>
         <label class="obsSpan2"><span>Background</span><select id="obsBackground"><option value="image">Cinematic image</option><option value="black">Black</option><option value="green">Chroma green</option><option value="transparent">Transparent</option></select></label>
-        <label class="obsSpan2"><span>Caption size</span><input id="obsFontSize" type="range" min="22" max="54" step="1" value="34"></label>
+        <label class="obsSpan2"><span>Maximum caption size · auto-fit</span><input id="obsFontSize" type="range" min="22" max="54" step="1" value="34"></label>
         <label class="obsSpan2"><span>Audio language</span><select id="obsAudioLanguage"><option value="zh">繁體中文</option><option value="en">US English</option><option value="vi">Tiếng Việt</option><option value="yue">香港廣東話</option></select></label>
         <div class="obsControlGroup obsSpan6"><span>Caption languages · select one or more</span><div class="obsLanguageChecks">
           <label><input type="checkbox" data-obs-lang="zh" checked>繁體中文</label>
@@ -249,6 +249,10 @@
     });
     const status = $("status");
     if (status) new MutationObserver(() => { $("obsAudioStatus").textContent = status.textContent; }).observe(status, { childList: true, subtree: true, characterData: true });
+    window.addEventListener("resize", () => requestAnimationFrame(() => {
+      fitObsCaptions($("obsStage"));
+      syncObsSecondMonitor();
+    }));
   }
 
   function isFormField(target) {
@@ -262,6 +266,8 @@
     output.document.write(`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base href="${base}"><title>Tam Bảo · Selected OBS Output</title><link rel="stylesheet" href="${stylesheet}"><style>html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#000}body{display:grid;place-items:center;padding:0}#obsOutputMount{display:grid;width:100%;height:100%;place-items:center}.obsStageShell{width:min(100vw,calc(100vh * 16 / 9));height:min(100vh,calc(100vw * 9 / 16));min-height:0;aspect-ratio:16/9;border:0;border-radius:0;box-shadow:none}.obsStage{position:absolute}.outputFullscreenHint{position:fixed;right:12px;top:12px;z-index:5;padding:7px 10px;border-radius:999px;color:#fff;background:#0009;font:700 12px system-ui,sans-serif;opacity:.7;pointer-events:none;transition:opacity .3s}body:hover .outputFullscreenHint{opacity:.95}:fullscreen .outputFullscreenHint{display:none}@media(display-mode:fullscreen){.outputFullscreenHint{display:none}}</style></head><body><main id="obsOutputMount"></main><div class="outputFullscreenHint">16:9 selected content · Double-click for full screen · Esc to exit</div></body></html>`);
     output.document.close();
     output.document.addEventListener("dblclick", () => output.document.documentElement.requestFullscreen?.().catch(() => {}));
+    output.addEventListener("load", () => syncObsSecondMonitor(), { once: true });
+    output.addEventListener("resize", () => output.requestAnimationFrame(() => fitObsCaptions(output.document.getElementById("obsStage"))));
     output.addEventListener("beforeunload", () => { if (obsSecondMonitorWindow === output) obsSecondMonitorWindow = null; });
     syncObsSecondMonitor();
   }
@@ -303,6 +309,7 @@
     if (!output || output.closed || !$('obsStage')) return;
     try {
       const clone = $("obsStage").cloneNode(true);
+      clone.querySelectorAll(".obsCaptionText").forEach((text) => { text.style.fontSize = ""; });
       const current = output.document.getElementById("obsStage");
       if (current) current.replaceWith(clone);
       else {
@@ -311,7 +318,21 @@
         shell.append(clone);
         output.document.getElementById("obsOutputMount")?.replaceChildren(shell);
       }
+      output.requestAnimationFrame(() => fitObsCaptions(output.document.getElementById("obsStage")));
     } catch { obsSecondMonitorWindow = null; }
+  }
+
+  function fitObsCaptions(stage) {
+    if (!stage || !stage.isConnected || stage.clientHeight === 0) return;
+    const requestedSize = Number.parseFloat(stage.style.getPropertyValue("--obs-caption-size")) || 34;
+    stage.querySelectorAll(".obsCaptionText").forEach((text) => {
+      let size = requestedSize;
+      text.style.fontSize = `${size}px`;
+      while (size > 12 && (text.scrollHeight > text.clientHeight + 1 || text.scrollWidth > text.clientWidth + 1)) {
+        size -= 1;
+        text.style.fontSize = `${size}px`;
+      }
+    });
   }
 
   function setPassage(index) {
@@ -374,7 +395,10 @@
     $("obsPage").textContent = `${String(index + 1).padStart(2, "0")} / ${deck.length}`;
     $("obsPrevious").disabled = index === 0;
     $("obsNext").disabled = index === deck.length - 1;
-    syncObsSecondMonitor();
+    requestAnimationFrame(() => {
+      fitObsCaptions(stage);
+      syncObsSecondMonitor();
+    });
   }
 
   function restoreObsSettings() {
