@@ -15,6 +15,7 @@
   const obsStorageKey = "tam-bao-2026-obs-settings-v1";
   let saveTimer = 0;
   let editingStore = readJson(editStorageKey, {});
+  let obsSecondMonitorWindow = null;
 
   function readJson(key, fallback) {
     try {
@@ -167,6 +168,7 @@
           <button type="button" id="obsNext">Next →</button>
           <button type="button" id="obsFullscreen">Full-screen stage</button>
           <button type="button" id="obsCleanOutput">Clean output</button>
+          <button type="button" id="obsSecondMonitor">2nd monitor · Selected content</button>
         </div>
       </div>
       <div class="obsAudioStatus" id="obsAudioStatus">Ready for presentation.</div>
@@ -177,7 +179,7 @@
           <div class="obsStageBottom"><span id="obsSection"></span><div class="obsProgress"><span></span></div><span id="obsPage"></span></div>
         </div>
       </div>
-      <p class="obsHint">In OBS, add a <strong>Window Capture</strong> source for this browser. Select <strong>Clean output</strong> or <strong>Full-screen stage</strong> for a control-free 16:9 presentation. Press Esc to return to the controller.</p>
+      <p class="obsHint">In OBS, add a <strong>Window Capture</strong> source for this browser. <strong>2nd monitor · Selected content</strong> opens only the selected passage, languages, image, and captions—without controls—and keeps it synchronized with this controller.</p>
     `;
     card.insertBefore(obsView, readingView);
 
@@ -234,6 +236,7 @@
       catch { $("obsView").classList.add("cleanOutput"); }
     });
     $("obsCleanOutput").addEventListener("click", () => $("obsView").classList.toggle("cleanOutput"));
+    $("obsSecondMonitor").addEventListener("click", openObsSecondMonitor);
     document.addEventListener("keydown", (event) => {
       if ($("obsView")?.hidden) return;
       if (event.key === "Escape") $("obsView").classList.remove("cleanOutput");
@@ -250,6 +253,65 @@
 
   function isFormField(target) {
     return target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement || target instanceof HTMLButtonElement;
+  }
+
+  function initializeObsSecondMonitor(output) {
+    const stylesheet = new URL("./app-upgrade.css", location.href).href;
+    const base = new URL("./", location.href).href;
+    output.document.open();
+    output.document.write(`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base href="${base}"><title>Tam Bảo · Selected OBS Output</title><link rel="stylesheet" href="${stylesheet}"><style>html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#000}body{display:grid;place-items:center;padding:0}#obsOutputMount{display:grid;width:100%;height:100%;place-items:center}.obsStageShell{width:min(100vw,calc(100vh * 16 / 9));height:min(100vh,calc(100vw * 9 / 16));min-height:0;aspect-ratio:16/9;border:0;border-radius:0;box-shadow:none}.obsStage{position:absolute}.outputFullscreenHint{position:fixed;right:12px;top:12px;z-index:5;padding:7px 10px;border-radius:999px;color:#fff;background:#0009;font:700 12px system-ui,sans-serif;opacity:.7;pointer-events:none;transition:opacity .3s}body:hover .outputFullscreenHint{opacity:.95}:fullscreen .outputFullscreenHint{display:none}@media(display-mode:fullscreen){.outputFullscreenHint{display:none}}</style></head><body><main id="obsOutputMount"></main><div class="outputFullscreenHint">16:9 selected content · Double-click for full screen · Esc to exit</div></body></html>`);
+    output.document.close();
+    output.document.addEventListener("dblclick", () => output.document.documentElement.requestFullscreen?.().catch(() => {}));
+    output.addEventListener("beforeunload", () => { if (obsSecondMonitorWindow === output) obsSecondMonitorWindow = null; });
+    syncObsSecondMonitor();
+  }
+
+  async function openObsSecondMonitor() {
+    const output = window.open("", "tamBaoV1SelectedObsOutput", "popup=yes,width=1280,height=720,resizable=yes");
+    if (!output) {
+      $("obsAudioStatus").textContent = "The second-monitor window was blocked. Allow pop-ups for this site and try again.";
+      return;
+    }
+    obsSecondMonitorWindow = output;
+    initializeObsSecondMonitor(output);
+    let targetScreen = null;
+    try {
+      if ("getScreenDetails" in window) {
+        const details = await window.getScreenDetails();
+        targetScreen = details.screens.find((screen) => !screen.isPrimary) || details.currentScreen || details.screens[0];
+      }
+    } catch { /* The browser may not support automatic monitor selection or permission may be declined. */ }
+    if (targetScreen) {
+      const left = targetScreen.availLeft ?? targetScreen.left ?? 0;
+      const top = targetScreen.availTop ?? targetScreen.top ?? 0;
+      const width = targetScreen.availWidth ?? targetScreen.width ?? 1280;
+      const height = targetScreen.availHeight ?? targetScreen.height ?? 720;
+      try {
+        output.moveTo(left, top);
+        output.resizeTo(width, height);
+      } catch { /* Manual placement remains available. */ }
+      $("obsAudioStatus").textContent = "Selected content is synchronized on the second monitor. Double-click the output for full screen.";
+    } else {
+      $("obsAudioStatus").textContent = "Selected-content output opened. Move it to monitor 2 and double-click it for full screen.";
+    }
+    output.focus();
+    syncObsSecondMonitor();
+  }
+
+  function syncObsSecondMonitor() {
+    const output = obsSecondMonitorWindow;
+    if (!output || output.closed || !$('obsStage')) return;
+    try {
+      const clone = $("obsStage").cloneNode(true);
+      const current = output.document.getElementById("obsStage");
+      if (current) current.replaceWith(clone);
+      else {
+        const shell = output.document.createElement("div");
+        shell.className = "obsStageShell";
+        shell.append(clone);
+        output.document.getElementById("obsOutputMount")?.replaceChildren(shell);
+      }
+    } catch { obsSecondMonitorWindow = null; }
   }
 
   function setPassage(index) {
@@ -312,6 +374,7 @@
     $("obsPage").textContent = `${String(index + 1).padStart(2, "0")} / ${deck.length}`;
     $("obsPrevious").disabled = index === 0;
     $("obsNext").disabled = index === deck.length - 1;
+    syncObsSecondMonitor();
   }
 
   function restoreObsSettings() {
@@ -338,4 +401,5 @@
       languages: [...document.querySelectorAll("[data-obs-lang]:checked")].map((input) => input.dataset.obsLang),
     });
   }
+  window.addEventListener("beforeunload", () => { try { obsSecondMonitorWindow?.close(); } catch {} });
 })();
