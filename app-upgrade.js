@@ -195,7 +195,7 @@
       </div>
       <div class="obsControlGrid">
         <label class="obsSpan4"><span>Passage</span><select id="obsPassage" aria-label="OBS passage"></select></label>
-        <label class="obsSpan2"><span>Caption layout</span><select id="obsLayout"><option value="stacked">Stacked</option><option value="columns">Two columns</option></select></label>
+        <label class="obsSpan2"><span>Caption layout</span><select id="obsLayout"><option value="stacked">Stacked</option><option value="columns">Two columns</option><option value="speaker-image">Speaker text left · Image right</option></select></label>
         <label class="obsSpan2"><span>Background</span><select id="obsBackground"><option value="image">Cinematic image</option><option value="black">Black</option><option value="green">Chroma green</option><option value="transparent">Transparent</option></select></label>
         <label class="obsSpan2"><span>Caption font size · <strong id="obsFontSizeValue">34px</strong></span><input id="obsFontSize" type="range" min="10" max="54" step="1" value="34"></label>
         <label class="obsSpan2"><span>Audio language</span><select id="obsAudioLanguage"><option value="zh">繁體中文</option><option value="en">US English</option><option value="vi">Tiếng Việt</option><option value="yue">香港廣東話</option></select></label>
@@ -227,7 +227,14 @@
       <div class="obsStageShell" id="obsStageShell">
         <div class="obsStage" id="obsStage" data-background="image">
           <div class="obsStageTop"><div class="obsBrand"><span class="obsBrandMark">三</span><span>Tam Bảo · 三寶</span></div><div class="obsSource" id="obsSource"></div></div>
-          <div class="obsCaptionGrid" id="obsCaptionGrid"></div>
+          <div class="obsStageContent">
+            <div class="obsCaptionGrid" id="obsCaptionGrid"></div>
+            <figure class="obsMediaPanel" id="obsMediaPanel">
+              <span class="obsMediaBackdrop" aria-hidden="true"></span>
+              <img id="obsMediaImage" alt="">
+              <figcaption id="obsMediaEmpty" hidden>No illustration is assigned to this passage.</figcaption>
+            </figure>
+          </div>
           <div class="obsStageBottom"><span id="obsSection"></span><div class="obsProgress"><span></span></div><span id="obsPage"></span></div>
         </div>
       </div>
@@ -428,9 +435,12 @@
     const index = activeIndex();
     const slide = deck[index];
     $("obsPassage").value = String(index);
-    const selected = [...document.querySelectorAll("[data-obs-lang]:checked")].map((input) => input.dataset.obsLang);
+    const layout = $("obsLayout").value;
+    const selected = layout === "speaker-image"
+      ? [$("obsAudioLanguage").value]
+      : [...document.querySelectorAll("[data-obs-lang]:checked")].map((input) => input.dataset.obsLang);
     const grid = $("obsCaptionGrid");
-    grid.classList.toggle("twoColumn", $("obsLayout").value === "columns" && selected.length > 1);
+    grid.classList.toggle("twoColumn", layout === "columns" && selected.length > 1);
     grid.replaceChildren(...selected.map((language) => {
       const card = document.createElement("article");
       card.className = "obsCaptionCard";
@@ -447,12 +457,26 @@
     const stage = $("obsStage");
     stage.dataset.background = $("obsBackground").value;
     stage.classList.toggle("textFocus", $("obsTextFocus").checked);
+    stage.classList.toggle("speakerImageLayout", layout === "speaker-image");
     stage.style.setProperty("--obs-caption-size", `${$("obsFontSize").value}px`);
     stage.style.setProperty("--obs-caption-width", `${$("obsBoxWidth").value}%`);
     stage.style.setProperty("--obs-caption-height", `${$("obsBoxHeight").value}%`);
     stage.style.setProperty("--obs-image", slide.image ? `url("${slide.image.replaceAll('"', '%22')}")` : "none");
     stage.style.setProperty("--obs-progress", `${((index + 1) / deck.length) * 100}%`);
     $("obsSource").textContent = slide.source;
+    const mediaImage = $("obsMediaImage");
+    const mediaEmpty = $("obsMediaEmpty");
+    if (slide.image) {
+      mediaImage.src = slide.image;
+      mediaImage.alt = `Illustration for ${slide.source}`;
+      mediaImage.hidden = false;
+      mediaEmpty.hidden = true;
+    } else {
+      mediaImage.removeAttribute("src");
+      mediaImage.alt = "";
+      mediaImage.hidden = true;
+      mediaEmpty.hidden = false;
+    }
     $("obsSection").textContent = `${slide.sectionLabel || "三寶"} · ${languages[$("obsAudioLanguage").value].label}`;
     $("obsPage").textContent = `${String(index + 1).padStart(2, "0")} / ${deck.length}`;
     $("obsPrevious").disabled = index === 0;
