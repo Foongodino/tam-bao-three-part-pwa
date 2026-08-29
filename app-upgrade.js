@@ -16,6 +16,11 @@
   const editorContextRepairKey = "tam-bao-2026-editor-context-repair-v1";
   let saveTimer = 0;
   let obsToolsCollapseTimer = 0;
+  let obsAudioQueue = [];
+  let obsAudioQueueIndex = -1;
+  let obsAudioQueueActive = false;
+  let obsAudioAdvancePending = false;
+  let obsAudioPreferredLanguage = "zh";
   let editingStore = readJson(editStorageKey, {});
   let editorContext = { index: 0, language: "zh" };
   let obsSecondMonitorWindow = null;
@@ -203,7 +208,7 @@
         <label class="obsSpan2"><span>Caption layout</span><select id="obsLayout"><option value="stacked">Stacked</option><option value="columns">Two columns</option><option value="speaker-image">Speaker text left · Image right</option></select></label>
         <label class="obsSpan2"><span>Background</span><select id="obsBackground"><option value="image">Cinematic image</option><option value="black">Black</option><option value="green">Chroma green</option><option value="transparent">Transparent</option></select></label>
         <label class="obsSpan2"><span>Caption font size · <strong id="obsFontSizeValue">34px</strong></span><input id="obsFontSize" type="range" min="10" max="54" step="1" value="34"></label>
-        <label class="obsSpan2"><span>Audio language</span><select id="obsAudioLanguage"><option value="zh">繁體中文</option><option value="en">US English</option><option value="vi">Tiếng Việt</option><option value="yue">香港廣東話</option></select></label>
+        <label class="obsSpan2"><span>Audio queue starts with</span><select id="obsAudioLanguage"><option value="zh">繁體中文</option><option value="en">US English</option><option value="vi">Tiếng Việt</option><option value="yue">香港廣東話</option></select></label>
         <label class="obsSpan2"><span>Text box width · <strong id="obsBoxWidthValue">100%</strong></span><input id="obsBoxWidth" type="range" min="60" max="100" step="1" value="100"></label>
         <label class="obsSpan2"><span>Text box height · <strong id="obsBoxHeightValue">100%</strong></span><input id="obsBoxHeight" type="range" min="50" max="100" step="1" value="100"></label>
         <label class="obsToggle obsSpan2"><span>Complete text</span><span><input id="obsAutoFit" type="checkbox" checked> Auto-fit complete text</span></label>
@@ -218,7 +223,7 @@
         <label class="obsSpan3"><span>Playback speed</span><input id="obsRate" type="range" min="0.60" max="1.30" step="0.05" value="1.00"></label>
         <div class="obsActions obsSpan12">
           <button type="button" id="obsPrevious">← Previous</button>
-          <button type="button" class="primary" id="obsPlay">▶ Play audio</button>
+          <button type="button" class="primary" id="obsPlay">▶ Play selected languages</button>
           <button type="button" id="obsPause">Pause / Resume</button>
           <button type="button" class="danger" id="obsStop">■ Stop</button>
           <button type="button" id="obsNext">Next →</button>
@@ -312,12 +317,16 @@
     $("obsNext").addEventListener("click", () => setPassage(activeIndex() + 1));
     document.querySelectorAll("[data-obs-lang]").forEach((input) => input.addEventListener("change", () => {
       if (!document.querySelector("[data-obs-lang]:checked")) input.checked = true;
+      if (obsAudioQueueActive) stopObsAudioQueue();
       saveObsSettings();
       renderObsStage();
     }));
     ["obsLayout", "obsBackground", "obsFontSize", "obsBoxWidth", "obsBoxHeight", "obsAutoFit", "obsTextFocus", "obsAudioLanguage", "obsAudioSource", "obsRate"].forEach((id) => {
       $(id).addEventListener("input", () => { saveObsSettings(); renderObsStage(); });
       $(id).addEventListener("change", () => { saveObsSettings(); renderObsStage(); });
+    });
+    $("obsAudioLanguage").addEventListener("change", () => {
+      if (!obsAudioQueueActive) obsAudioPreferredLanguage = $("obsAudioLanguage").value;
     });
     $("obsResetBoxSize").addEventListener("click", () => {
       $("obsBoxWidth").value = "100";
@@ -326,7 +335,7 @@
       renderObsStage();
     });
     $("obsPlay").addEventListener("click", playObsAudio);
-    $("obsStop").addEventListener("click", () => $("stop")?.click());
+    $("obsStop").addEventListener("click", stopObsAudioQueue);
     $("obsPause").addEventListener("click", pauseResumeObsAudio);
     $("obsFullscreen").addEventListener("click", async () => {
       try { await $("obsStageShell").requestFullscreen(); }
@@ -345,7 +354,7 @@
       ["click", "change"].forEach((name) => element.addEventListener(name, () => setTimeout(renderObsStage, 0)));
     });
     const status = $("status");
-    if (status) new MutationObserver(() => { $("obsAudioStatus").textContent = status.textContent; }).observe(status, { childList: true, subtree: true, characterData: true });
+    if (status) new MutationObserver(() => handleObsPlaybackStatus(status.textContent)).observe(status, { childList: true, subtree: true, characterData: true });
     window.addEventListener("resize", () => requestAnimationFrame(() => {
       fitObsCaptions($("obsStage"));
       syncObsSecondMonitor();
@@ -357,7 +366,7 @@
   }
 
   function initializeObsSecondMonitor(output) {
-    const stylesheet = new URL("./app-upgrade.css", location.href).href;
+    const stylesheet = new URL("./app-upgrade.css?v=20260828-v14", location.href).href;
     const base = new URL("./", location.href).href;
     output.document.open();
     output.document.write(`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base href="${base}"><title>Tam Bảo · Selected OBS Output</title><link rel="stylesheet" href="${stylesheet}"><style>html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#000}body{display:grid;place-items:center;padding:0}#obsOutputMount{display:grid;width:100%;height:100%;place-items:center}.obsStageShell{width:min(100vw,calc(100vh * 16 / 9));height:min(100vh,calc(100vw * 9 / 16));min-height:0;aspect-ratio:16/9;border:0;border-radius:0;box-shadow:none}.obsStage{position:absolute}.outputFullscreenHint{position:fixed;right:12px;top:12px;z-index:5;padding:7px 10px;border-radius:999px;color:#fff;background:#0009;font:700 12px system-ui,sans-serif;opacity:.7;pointer-events:none;transition:opacity .3s}body:hover .outputFullscreenHint{opacity:.95}:fullscreen .outputFullscreenHint{display:none}@media(display-mode:fullscreen){.outputFullscreenHint{display:none}}</style></head><body><main id="obsOutputMount"></main><div class="outputFullscreenHint">16:9 selected content · Double-click for full screen · Esc to exit</div></body></html>`);
@@ -434,6 +443,7 @@
   }
 
   function setPassage(index) {
+    if (obsAudioQueueActive) stopObsAudioQueue();
     saveCurrentEditor({ immediate: true });
     const value = Math.max(0, Math.min(deck.length - 1, index));
     $("passage").value = String(value);
@@ -442,14 +452,82 @@
   }
 
   function playObsAudio() {
-    const language = $("obsAudioLanguage").value;
+    const selected = [...document.querySelectorAll("[data-obs-lang]:checked")].map((input) => input.dataset.obsLang);
+    if (!selected.length) {
+      $("obsAudioStatus").textContent = "Select at least one Caption language before playing.";
+      return;
+    }
+    if (obsAudioQueueActive) stopObsAudioQueue();
+    obsAudioPreferredLanguage = $("obsAudioLanguage").value;
+    const preferredIndex = selected.indexOf(obsAudioPreferredLanguage);
+    obsAudioQueue = preferredIndex > 0 ? [...selected.slice(preferredIndex), ...selected.slice(0, preferredIndex)] : selected;
+    obsAudioQueueIndex = 0;
+    obsAudioQueueActive = true;
+    obsAudioAdvancePending = false;
+    playCurrentObsQueueLanguage();
+  }
+
+  function playCurrentObsQueueLanguage() {
+    if (!obsAudioQueueActive || obsAudioQueueIndex < 0 || obsAudioQueueIndex >= obsAudioQueue.length) return;
+    const language = obsAudioQueue[obsAudioQueueIndex];
     const languageButton = document.querySelector(`.languages [data-lang="${language}"]`);
     if (languageButton && !languageButton.classList.contains("active")) languageButton.click();
+    $("obsAudioLanguage").value = language;
+    $("livePlayScope").value = "selection";
     $("audioSource").value = $("obsAudioSource").value;
     $("audioSource").dispatchEvent(new Event("change", { bubbles: true }));
     $("rate").value = $("obsRate").value;
     $("rate").dispatchEvent(new Event("input", { bubbles: true }));
-    $("listen").click();
+    renderObsStage();
+    $("obsAudioStatus").textContent = `Queue ${obsAudioQueueIndex + 1}/${obsAudioQueue.length} · ${languages[language].label}`;
+    requestAnimationFrame(() => {
+      if (obsAudioQueueActive && obsAudioQueue[obsAudioQueueIndex] === language) $("listen").click();
+    });
+  }
+
+  function advanceObsAudioQueue() {
+    if (!obsAudioQueueActive) return;
+    obsAudioQueueIndex += 1;
+    if (obsAudioQueueIndex < obsAudioQueue.length) {
+      playCurrentObsQueueLanguage();
+      return;
+    }
+    obsAudioQueueActive = false;
+    obsAudioQueue = [];
+    obsAudioQueueIndex = -1;
+    $("obsAudioLanguage").value = obsAudioPreferredLanguage;
+    $("obsAudioStatus").textContent = "Selected-language audio queue is complete.";
+    renderObsStage();
+  }
+
+  function handleObsPlaybackStatus(message) {
+    if (!obsAudioQueueActive) {
+      $("obsAudioStatus").textContent = message;
+      return;
+    }
+    const complete = message.includes("Selected passage reading is complete.");
+    const failed = message.includes("The MP3 could not play") || message.includes("Voice could not play");
+    if ((complete || failed) && !obsAudioAdvancePending) {
+      obsAudioAdvancePending = true;
+      window.setTimeout(() => {
+        obsAudioAdvancePending = false;
+        advanceObsAudioQueue();
+      }, 180);
+      return;
+    }
+    const language = obsAudioQueue[obsAudioQueueIndex];
+    $("obsAudioStatus").textContent = `Queue ${obsAudioQueueIndex + 1}/${obsAudioQueue.length} · ${languages[language]?.label || language} · ${message}`;
+  }
+
+  function stopObsAudioQueue() {
+    obsAudioQueueActive = false;
+    obsAudioAdvancePending = false;
+    obsAudioQueue = [];
+    obsAudioQueueIndex = -1;
+    $("obsAudioLanguage").value = obsAudioPreferredLanguage;
+    $("stop")?.click();
+    $("obsAudioStatus").textContent = "Selected-language audio queue stopped.";
+    renderObsStage();
   }
 
   function pauseResumeObsAudio() {
@@ -475,6 +553,7 @@
       const card = document.createElement("article");
       card.className = "obsCaptionCard";
       card.dataset.lang = language;
+      card.classList.toggle("isSpeaking", obsAudioQueueActive && obsAudioQueue[obsAudioQueueIndex] === language);
       const label = document.createElement("div");
       label.className = "obsCaptionLabel";
       label.textContent = languages[language].short;
@@ -530,6 +609,7 @@
     if (typeof settings.autoFit === "boolean") $("obsAutoFit").checked = settings.autoFit;
     if (typeof settings.textFocus === "boolean") $("obsTextFocus").checked = settings.textFocus;
     if (settings.audioLanguage) $("obsAudioLanguage").value = settings.audioLanguage;
+    obsAudioPreferredLanguage = $("obsAudioLanguage").value;
     if (settings.audioSource) $("obsAudioSource").value = settings.audioSource;
     if (settings.rate) $("obsRate").value = settings.rate;
     if (Array.isArray(settings.languages) && settings.languages.length) {
