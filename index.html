@@ -49,8 +49,8 @@
         const decrypted=await crypto.subtle.decrypt({name:"AES-GCM",iv:fromBase64(payload.iv)},key,fromBase64(payload.data));
         let html=new TextDecoder().decode(decrypted);
         html=html.replace(/const deck\s*=\s*\[/,"const deck = window.__TAM_BAO_DECK__ = [");
-        html=html.replace("</head>",'<link rel="stylesheet" href="./app-upgrade.css?v=20260828-v14"></head>');
-        html=html.replace("</body>",'<script src="./app-upgrade.js?v=20260828-v14"></scr'+'ipt></body>');
+        html=html.replace("</head>",'<link rel="stylesheet" href="./app-upgrade.css?v=20260828-v16"></head>');
+        html=html.replace("</body>",'<script src="./app-upgrade.js?v=20260828-v16"></scr'+'ipt></body>');
         document.open();
         document.write(html);
         document.close();
@@ -63,7 +63,7 @@
   </script>
 
   <script>
-    if ("serviceWorker" in navigator) window.addEventListener("load",() => navigator.serviceWorker.register("./service-worker.js?v=20260828-v14").catch(() => {}));
+    if ("serviceWorker" in navigator) window.addEventListener("load",() => navigator.serviceWorker.register("./service-worker.js?v=20260828-v16").catch(() => {}));
   </script>
 </body>
 </html>

@@ -19,6 +19,7 @@
   let obsAudioQueue = [];
   let obsAudioQueueIndex = -1;
   let obsAudioQueueActive = false;
+  let obsAudioPlayAll = false;
   let obsAudioAdvancePending = false;
   let obsAudioPreferredLanguage = "zh";
   let editingStore = readJson(editStorageKey, {});
@@ -136,6 +137,7 @@
   repairCorruptedChineseEdits();
   applyStoredEdits();
   syncEditorContext();
+  addPlayAllFromHereControls();
 
   const header = document.querySelector("header");
   if (header) {
@@ -172,6 +174,41 @@
     refreshCurrentPassage();
     renderObsStage();
   });
+
+  function addPlayAllFromHereControls() {
+    const addButton = (barId, buttonId, onPlay) => {
+      const bar = $(barId);
+      if (!bar || $(buttonId)) return;
+      const button = document.createElement("button");
+      button.type = "button";
+      button.id = buttonId;
+      button.className = "playAllFromHereButton";
+      button.setAttribute("aria-label", "Play all from current passage");
+      button.title = "Play all · Start here";
+      button.textContent = "▶ All from here";
+      const stopButton = bar.querySelector('[aria-label="Stop"]');
+      bar.insertBefore(button, stopButton || null);
+      button.addEventListener("click", onPlay);
+    };
+
+    addButton("livePlayerBar", "livePlayAllFromHere", () => {
+      const scope = $("livePlayScope");
+      if (scope) {
+        scope.value = "document";
+        scope.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      $("listen")?.click();
+    });
+
+    addButton("readingPlayerBar", "readingPlayAllFromHere", () => {
+      const scope = $("readingPlayScope");
+      if (scope) {
+        scope.value = "document";
+        scope.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      $("readingPlay")?.click();
+    });
+  }
 
   function buildObsStudio() {
     const tabs = document.querySelector(".workspaceTabs");
@@ -224,6 +261,7 @@
         <div class="obsActions obsSpan12">
           <button type="button" id="obsPrevious">← Previous</button>
           <button type="button" class="primary" id="obsPlay">▶ Play selected languages</button>
+          <button type="button" class="primary" id="obsPlayAllFromHere">▶ Play all · Start here</button>
           <button type="button" id="obsPause">Pause / Resume</button>
           <button type="button" class="danger" id="obsStop">■ Stop</button>
           <button type="button" id="obsNext">Next →</button>
@@ -317,7 +355,7 @@
     $("obsNext").addEventListener("click", () => setPassage(activeIndex() + 1));
     document.querySelectorAll("[data-obs-lang]").forEach((input) => input.addEventListener("change", () => {
       if (!document.querySelector("[data-obs-lang]:checked")) input.checked = true;
-      if (obsAudioQueueActive) stopObsAudioQueue();
+      if (obsAudioQueueActive || obsAudioPlayAll) stopObsAudioQueue();
       saveObsSettings();
       renderObsStage();
     }));
@@ -335,6 +373,7 @@
       renderObsStage();
     });
     $("obsPlay").addEventListener("click", playObsAudio);
+    $("obsPlayAllFromHere").addEventListener("click", playObsAllFromHere);
     $("obsStop").addEventListener("click", stopObsAudioQueue);
     $("obsPause").addEventListener("click", pauseResumeObsAudio);
     $("obsFullscreen").addEventListener("click", async () => {
@@ -366,7 +405,7 @@
   }
 
   function initializeObsSecondMonitor(output) {
-    const stylesheet = new URL("./app-upgrade.css?v=20260828-v14", location.href).href;
+    const stylesheet = new URL("./app-upgrade.css?v=20260828-v16", location.href).href;
     const base = new URL("./", location.href).href;
     output.document.open();
     output.document.write(`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base href="${base}"><title>Tam Bảo · Selected OBS Output</title><link rel="stylesheet" href="${stylesheet}"><style>html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#000}body{display:grid;place-items:center;padding:0}#obsOutputMount{display:grid;width:100%;height:100%;place-items:center}.obsStageShell{width:min(100vw,calc(100vh * 16 / 9));height:min(100vh,calc(100vw * 9 / 16));min-height:0;aspect-ratio:16/9;border:0;border-radius:0;box-shadow:none}.obsStage{position:absolute}.outputFullscreenHint{position:fixed;right:12px;top:12px;z-index:5;padding:7px 10px;border-radius:999px;color:#fff;background:#0009;font:700 12px system-ui,sans-serif;opacity:.7;pointer-events:none;transition:opacity .3s}body:hover .outputFullscreenHint{opacity:.95}:fullscreen .outputFullscreenHint{display:none}@media(display-mode:fullscreen){.outputFullscreenHint{display:none}}</style></head><body><main id="obsOutputMount"></main><div class="outputFullscreenHint">16:9 selected content · Double-click for full screen · Esc to exit</div></body></html>`);
@@ -442,8 +481,8 @@
     });
   }
 
-  function setPassage(index) {
-    if (obsAudioQueueActive) stopObsAudioQueue();
+  function setPassage(index, { preserveObsQueue = false } = {}) {
+    if (!preserveObsQueue && (obsAudioQueueActive || obsAudioPlayAll)) stopObsAudioQueue();
     saveCurrentEditor({ immediate: true });
     const value = Math.max(0, Math.min(deck.length - 1, index));
     $("passage").value = String(value);
@@ -452,17 +491,26 @@
   }
 
   function playObsAudio() {
+    startObsAudioQueue(false);
+  }
+
+  function playObsAllFromHere() {
+    startObsAudioQueue(true);
+  }
+
+  function startObsAudioQueue(playAllFromHere) {
     const selected = [...document.querySelectorAll("[data-obs-lang]:checked")].map((input) => input.dataset.obsLang);
     if (!selected.length) {
       $("obsAudioStatus").textContent = "Select at least one Caption language before playing.";
       return;
     }
-    if (obsAudioQueueActive) stopObsAudioQueue();
+    if (obsAudioQueueActive || obsAudioPlayAll) stopObsAudioQueue();
     obsAudioPreferredLanguage = $("obsAudioLanguage").value;
     const preferredIndex = selected.indexOf(obsAudioPreferredLanguage);
     obsAudioQueue = preferredIndex > 0 ? [...selected.slice(preferredIndex), ...selected.slice(0, preferredIndex)] : selected;
     obsAudioQueueIndex = 0;
     obsAudioQueueActive = true;
+    obsAudioPlayAll = playAllFromHere;
     obsAudioAdvancePending = false;
     playCurrentObsQueueLanguage();
   }
@@ -479,7 +527,7 @@
     $("rate").value = $("obsRate").value;
     $("rate").dispatchEvent(new Event("input", { bubbles: true }));
     renderObsStage();
-    $("obsAudioStatus").textContent = `Queue ${obsAudioQueueIndex + 1}/${obsAudioQueue.length} · ${languages[language].label}`;
+    $("obsAudioStatus").textContent = `Passage ${activeIndex() + 1}/${deck.length} · Queue ${obsAudioQueueIndex + 1}/${obsAudioQueue.length} · ${languages[language].label}`;
     requestAnimationFrame(() => {
       if (obsAudioQueueActive && obsAudioQueue[obsAudioQueueIndex] === language) $("listen").click();
     });
@@ -492,11 +540,29 @@
       playCurrentObsQueueLanguage();
       return;
     }
+    if (obsAudioPlayAll && activeIndex() < deck.length - 1) {
+      obsAudioQueueActive = false;
+      obsAudioQueue = [];
+      obsAudioQueueIndex = -1;
+      setPassage(activeIndex() + 1, { preserveObsQueue: true });
+      window.setTimeout(() => {
+        if (!obsAudioPlayAll) return;
+        const selected = [...document.querySelectorAll("[data-obs-lang]:checked")].map((input) => input.dataset.obsLang);
+        const preferredIndex = selected.indexOf(obsAudioPreferredLanguage);
+        obsAudioQueue = preferredIndex > 0 ? [...selected.slice(preferredIndex), ...selected.slice(0, preferredIndex)] : selected;
+        obsAudioQueueIndex = 0;
+        obsAudioQueueActive = true;
+        playCurrentObsQueueLanguage();
+      }, 220);
+      return;
+    }
+    const completedAll = obsAudioPlayAll;
     obsAudioQueueActive = false;
+    obsAudioPlayAll = false;
     obsAudioQueue = [];
     obsAudioQueueIndex = -1;
     $("obsAudioLanguage").value = obsAudioPreferredLanguage;
-    $("obsAudioStatus").textContent = "Selected-language audio queue is complete.";
+    $("obsAudioStatus").textContent = completedAll ? "Play all from here is complete." : "Selected-language audio queue is complete.";
     renderObsStage();
   }
 
@@ -516,11 +582,12 @@
       return;
     }
     const language = obsAudioQueue[obsAudioQueueIndex];
-    $("obsAudioStatus").textContent = `Queue ${obsAudioQueueIndex + 1}/${obsAudioQueue.length} · ${languages[language]?.label || language} · ${message}`;
+    $("obsAudioStatus").textContent = `Passage ${activeIndex() + 1}/${deck.length} · Queue ${obsAudioQueueIndex + 1}/${obsAudioQueue.length} · ${languages[language]?.label || language} · ${message}`;
   }
 
   function stopObsAudioQueue() {
     obsAudioQueueActive = false;
+    obsAudioPlayAll = false;
     obsAudioAdvancePending = false;
     obsAudioQueue = [];
     obsAudioQueueIndex = -1;
