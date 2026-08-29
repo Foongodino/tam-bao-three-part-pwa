@@ -436,9 +436,7 @@
     const slide = deck[index];
     $("obsPassage").value = String(index);
     const layout = $("obsLayout").value;
-    const selected = layout === "speaker-image"
-      ? [$("obsAudioLanguage").value]
-      : [...document.querySelectorAll("[data-obs-lang]:checked")].map((input) => input.dataset.obsLang);
+    const selected = [...document.querySelectorAll("[data-obs-lang]:checked")].map((input) => input.dataset.obsLang);
     const grid = $("obsCaptionGrid");
     grid.classList.toggle("twoColumn", layout === "columns" && selected.length > 1);
     grid.replaceChildren(...selected.map((language) => {
