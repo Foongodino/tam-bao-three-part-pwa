@@ -84,6 +84,49 @@ header {
 
 .obsView[hidden] { display: none !important; }
 
+body.obsWorkspaceActive > main > header,
+body.obsWorkspaceActive > main > footer { display: none; }
+
+.obsToolDrawer {
+  position: sticky;
+  top: max(4px, env(safe-area-inset-top));
+  z-index: 80;
+}
+.obsToolDrawer > summary {
+  min-height: 44px;
+  padding: 11px 16px;
+  border: 1px solid #5f8f7e;
+  border-radius: 13px;
+  color: #eaf5f1;
+  background: linear-gradient(135deg, #173d33, #0b1915);
+  box-shadow: 0 10px 30px #0005;
+  font-weight: 850;
+  text-align: center;
+  cursor: pointer;
+  list-style: none;
+}
+.obsToolDrawer > summary::-webkit-details-marker { display: none; }
+.obsToolDrawer > summary::before { content: "☰ "; color: #e9c279; }
+.obsToolDrawer[open] > summary::before { content: "▲ "; }
+.obsToolDrawerBody {
+  position: absolute;
+  top: calc(100% + 7px);
+  left: 0;
+  right: 0;
+  display: grid;
+  gap: 10px;
+  max-height: min(78vh, 780px);
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid #42685b;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 96%, #07110e);
+  box-shadow: 0 24px 70px #0009;
+}
+.obsUtilitySlot { display: flex; justify-content: flex-end; align-items: center; gap: 8px; min-height: 0; }
+.obsUtilitySlot:empty { display: none; }
+.obsUtilitySlot .autosaveBadge { margin-left: 0; }
+
 .obsStudioHeader {
   display: flex;
   align-items: flex-start;
@@ -227,6 +270,7 @@ header {
 .obsHint { margin: 0; padding: 12px 14px; border-left: 4px solid var(--studio-gold); border-radius: 10px; color: var(--muted); background: color-mix(in srgb, var(--studio-gold) 9%, var(--surface)); }
 
 .obsView.cleanOutput .obsStudioHeader,
+.obsView.cleanOutput .obsToolDrawer,
 .obsView.cleanOutput .obsControlGrid,
 .obsView.cleanOutput .obsAudioStatus,
 .obsView.cleanOutput .obsHint { display: none; }

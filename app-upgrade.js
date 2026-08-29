@@ -15,6 +15,7 @@
   const obsStorageKey = "tam-bao-2026-obs-settings-v1";
   const editorContextRepairKey = "tam-bao-2026-editor-context-repair-v1";
   let saveTimer = 0;
+  let obsToolsCollapseTimer = 0;
   let editingStore = readJson(editStorageKey, {});
   let editorContext = { index: 0, language: "zh" };
   let obsSecondMonitorWindow = null;
@@ -189,6 +190,10 @@
     obsView.setAttribute("aria-labelledby", "obsTab");
     obsView.hidden = true;
     obsView.innerHTML = `
+      <details class="obsToolDrawer" id="obsToolDrawer">
+        <summary>OBS tools · Pull down when needed</summary>
+        <div class="obsToolDrawerBody">
+          <div class="obsUtilitySlot" id="obsUtilitySlot"></div>
       <div class="obsStudioHeader">
         <div><h2>OBS Presentation Studio</h2><p>Professional 16:9 multilingual captions with synchronized passage and audio controls.</p></div>
         <span class="obsLiveBadge">OBS READY</span>
@@ -223,6 +228,9 @@
           <button type="button" id="obsResetBoxSize">Reset text boxes</button>
         </div>
       </div>
+      <p class="obsHint">In OBS, add a <strong>Window Capture</strong> source for this browser. <strong>2nd monitor · Selected content</strong> opens only the selected passage, languages, image, and captions—without controls—and keeps it synchronized with this controller.</p>
+        </div>
+      </details>
       <div class="obsAudioStatus" id="obsAudioStatus">Ready for presentation.</div>
       <div class="obsStageShell" id="obsStageShell">
         <div class="obsStage" id="obsStage" data-background="image">
@@ -238,7 +246,6 @@
           <div class="obsStageBottom"><span id="obsSection"></span><div class="obsProgress"><span></span></div><span id="obsPage"></span></div>
         </div>
       </div>
-      <p class="obsHint">In OBS, add a <strong>Window Capture</strong> source for this browser. <strong>2nd monitor · Selected content</strong> opens only the selected passage, languages, image, and captions—without controls—and keeps it synchronized with this controller.</p>
     `;
     card.insertBefore(obsView, readingView);
 
@@ -262,6 +269,9 @@
     $("liveTab").setAttribute("aria-selected", "false");
     $("readingTab").setAttribute("aria-selected", "false");
     $("obsTab").setAttribute("aria-selected", "true");
+    document.body.classList.add("obsWorkspaceActive");
+    moveObsUtilities(true);
+    $("obsToolDrawer").open = false;
     renderObsStage();
   }
 
@@ -270,11 +280,33 @@
     if (!view) return;
     view.hidden = true;
     view.classList.remove("cleanOutput");
+    $("obsToolDrawer").open = false;
+    clearTimeout(obsToolsCollapseTimer);
+    document.body.classList.remove("obsWorkspaceActive");
+    moveObsUtilities(false);
     $("obsTab")?.classList.remove("active");
     $("obsTab")?.setAttribute("aria-selected", "false");
   }
 
+  function moveObsUtilities(intoDrawer) {
+    const badge = $("autosaveBadge");
+    const theme = $("themeToggle");
+    const destination = intoDrawer ? $("obsUtilitySlot") : header;
+    if (!destination) return;
+    [badge, theme].filter(Boolean).forEach((element) => destination.append(element));
+  }
+
+  function scheduleObsToolsCollapse() {
+    clearTimeout(obsToolsCollapseTimer);
+    const drawer = $("obsToolDrawer");
+    if (!drawer?.open) return;
+    obsToolsCollapseTimer = window.setTimeout(() => { drawer.open = false; }, 12000);
+  }
+
   function bindObsControls() {
+    const drawer = $("obsToolDrawer");
+    drawer.addEventListener("toggle", scheduleObsToolsCollapse);
+    ["pointerdown", "input", "change", "keydown"].forEach((eventName) => drawer.addEventListener(eventName, scheduleObsToolsCollapse));
     $("obsPassage").addEventListener("change", (event) => setPassage(Number(event.target.value)));
     $("obsPrevious").addEventListener("click", () => setPassage(activeIndex() - 1));
     $("obsNext").addEventListener("click", () => setPassage(activeIndex() + 1));
