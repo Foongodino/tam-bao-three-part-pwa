@@ -1,5 +1,5 @@
-const CACHE_NAME="tam-bao-three-part-pwa-2026-08-28-v16";
-const APP_SHELL=["./","./index.html","./app-upgrade.css?v=20260828-v16","./app-upgrade.js?v=20260828-v16","./manifest.webmanifest","./icons/icon.svg","./icons/icon-192.png","./icons/icon-512.png"];
+const CACHE_NAME="tam-bao-three-part-pwa-2026-08-28-v17";
+const APP_SHELL=["./","./index.html","./app-upgrade.css?v=20260828-v17","./app-upgrade.js?v=20260828-v17","./manifest.webmanifest","./icons/icon.svg","./icons/icon-192.png","./icons/icon-512.png"];
 
 self.addEventListener("install",(event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));

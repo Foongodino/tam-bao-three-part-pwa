@@ -138,6 +138,7 @@
   applyStoredEdits();
   syncEditorContext();
   addPlayAllFromHereControls();
+  repairPlayNextControls();
 
   const header = document.querySelector("header");
   if (header) {
@@ -210,6 +211,37 @@
     });
   }
 
+  function repairPlayNextControls() {
+    const playAfterPassageChange = (buttonId) => {
+      window.setTimeout(() => {
+        requestAnimationFrame(() => $(buttonId)?.click());
+      }, 220);
+    };
+
+    $("liveReadNext")?.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (activeIndex() >= deck.length - 1) return;
+      const scope = $("livePlayScope");
+      if (scope) scope.value = "selection";
+      setPassage(activeIndex() + 1);
+      playAfterPassageChange("listen");
+    }, true);
+
+    $("readingPlayNext")?.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (activeIndex() >= deck.length - 1) return;
+      const scope = $("readingPlayScope");
+      if (scope) {
+        scope.value = "auto";
+        scope.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      setPassage(activeIndex() + 1);
+      playAfterPassageChange("readingPlay");
+    }, true);
+  }
+
   function buildObsStudio() {
     const tabs = document.querySelector(".workspaceTabs");
     const card = document.querySelector(".card");
@@ -264,7 +296,7 @@
           <button type="button" class="primary" id="obsPlayAllFromHere">▶ Play all · Start here</button>
           <button type="button" id="obsPause">Pause / Resume</button>
           <button type="button" class="danger" id="obsStop">■ Stop</button>
-          <button type="button" id="obsNext">Next →</button>
+          <button type="button" id="obsNext">▶ Play next →</button>
           <button type="button" id="obsFullscreen">Full-screen stage</button>
           <button type="button" id="obsCleanOutput">Clean output</button>
           <button type="button" id="obsSecondMonitor">2nd monitor · Selected content</button>
@@ -352,7 +384,7 @@
     ["pointerdown", "input", "change", "keydown"].forEach((eventName) => drawer.addEventListener(eventName, scheduleObsToolsCollapse));
     $("obsPassage").addEventListener("change", (event) => setPassage(Number(event.target.value)));
     $("obsPrevious").addEventListener("click", () => setPassage(activeIndex() - 1));
-    $("obsNext").addEventListener("click", () => setPassage(activeIndex() + 1));
+    $("obsNext").addEventListener("click", playNextObsPassage);
     document.querySelectorAll("[data-obs-lang]").forEach((input) => input.addEventListener("change", () => {
       if (!document.querySelector("[data-obs-lang]:checked")) input.checked = true;
       if (obsAudioQueueActive || obsAudioPlayAll) stopObsAudioQueue();
@@ -405,7 +437,7 @@
   }
 
   function initializeObsSecondMonitor(output) {
-    const stylesheet = new URL("./app-upgrade.css?v=20260828-v16", location.href).href;
+    const stylesheet = new URL("./app-upgrade.css?v=20260828-v17", location.href).href;
     const base = new URL("./", location.href).href;
     output.document.open();
     output.document.write(`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base href="${base}"><title>Tam Bảo · Selected OBS Output</title><link rel="stylesheet" href="${stylesheet}"><style>html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#000}body{display:grid;place-items:center;padding:0}#obsOutputMount{display:grid;width:100%;height:100%;place-items:center}.obsStageShell{width:min(100vw,calc(100vh * 16 / 9));height:min(100vh,calc(100vw * 9 / 16));min-height:0;aspect-ratio:16/9;border:0;border-radius:0;box-shadow:none}.obsStage{position:absolute}.outputFullscreenHint{position:fixed;right:12px;top:12px;z-index:5;padding:7px 10px;border-radius:999px;color:#fff;background:#0009;font:700 12px system-ui,sans-serif;opacity:.7;pointer-events:none;transition:opacity .3s}body:hover .outputFullscreenHint{opacity:.95}:fullscreen .outputFullscreenHint{display:none}@media(display-mode:fullscreen){.outputFullscreenHint{display:none}}</style></head><body><main id="obsOutputMount"></main><div class="outputFullscreenHint">16:9 selected content · Double-click for full screen · Esc to exit</div></body></html>`);
@@ -492,6 +524,13 @@
 
   function playObsAudio() {
     startObsAudioQueue(false);
+  }
+
+  function playNextObsPassage() {
+    if (activeIndex() >= deck.length - 1) return;
+    stopObsAudioQueue();
+    setPassage(activeIndex() + 1, { preserveObsQueue: true });
+    window.setTimeout(() => startObsAudioQueue(false), 220);
   }
 
   function playObsAllFromHere() {
